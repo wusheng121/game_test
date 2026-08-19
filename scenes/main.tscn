@@ -1,0 +1,42 @@
+; ============================================================
+; main.tscn - 主场景（游戏启动后加载）
+; ============================================================
+; Step 1 结构：
+;   Main (Node2D, 挂 main.gd)
+;   ├── Background (ColorRect, 蓝色天空背景，1280x720)
+;   ├── Player (实例化自 player.tscn, 初始位置 (300, 360))
+;   └── Instructions (Label, "空格 / 上箭头 = 跳跃")
+
+[gd_scene load_steps=3 format=3]
+
+; 外部资源：实例化 player 场景 + 挂 main.gd
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player_scene"]
+[ext_resource type="Script" path="res://scripts/main.gd" id="2_main_script"]
+
+; 根节点：Node2D
+[node name="Main" type="Node2D"]
+script = ExtResource("2_main_script")
+
+; 背景：ColorRect 是 Control 节点（UI 类）
+; 作为 Node2D 子节点会按 offset 定位（offset_left/top 等）
+; 这里让它覆盖整个 1280x720 视口，作为天空
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.55, 0.75, 0.95, 1)
+
+; 玩家实例：从 player.tscn 实例化
+; position 设为 (300, 360)，即屏幕左 1/4 处、垂直居中
+[node name="Player" parent="." instance=ExtResource("1_player_scene")]
+position = Vector2(300, 360)
+
+; 操作提示标签
+[node name="Instructions" type="Label" parent="."]
+offset_left = 340.0
+offset_top = 40.0
+offset_right = 940.0
+offset_bottom = 100.0
+text = "空格 / 上箭头 = 跳跃"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 32
