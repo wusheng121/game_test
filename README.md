@@ -38,9 +38,14 @@
 - CanvasLayer 独立 UI 层（UILayer）
 - Game Over UI 动态显示最终得分（字符串格式化 %d）
 
-### 后续 Step 路线图
-
-- [ ] Step 5：完善重新开始（菜单 + 动画 + 最高分记录）
+### Step 5 ✅ 已完成
+- 三态状态机（MENU / PLAYING / GAME_OVER，用 enum + match）
+- 启动菜单（TitleLabel，按跳跃键开始游戏）
+- 最高分持久化（FileAccess 读写 `user://highscore.txt`）
+- 死亡旋转动画（player.is_dead + rotation 累加）
+- Game Over UI 延迟显示（0.6s 让死亡动画可见）
+- HighScoreLabel 顶部右侧显示历史最高分
+- 多 UI 共存（Title / Score / HighScore / GameOver 各司其职）
 
 ## 项目结构
 
@@ -51,12 +56,12 @@ flappy-clone/
 ├── .gitignore
 ├── README.md
 ├── scenes/                # 场景文件（.tscn）
-│   ├── main.tscn          # 主场景（含 GameOverUI + UILayer/ScoreLabel）
+│   ├── main.tscn          # 主场景（含 UILayer: Score/HighScore/Title）
 │   ├── player.tscn        # 玩家场景
 │   └── pipe_pair.tscn     # 管道对场景（Area2D + PassDetector）
 ├── scripts/               # GDScript 脚本（.gd）
-│   ├── main.gd            # 主场景脚本（生成 + Game Over + 分数）
-│   ├── player.gd          # 玩家脚本（重力 + 跳跃 + 天花板 clamp）
+│   ├── main.gd            # 主场景脚本（状态机 + 高分 + 生成）
+│   ├── player.gd          # 玩家脚本（重力 + 跳跃 + 死亡动画）
 │   └── pipe_pair.gd       # 管道对脚本（滚动 + 碰撞 + 计分信号）
 └── assets/                # 美术/音效资源（暂空）
 ```
@@ -80,8 +85,7 @@ godot --path .  # 打开项目
 
 | 按键 | 动作 |
 |------|------|
-| 鼠标左键 / 空格 | 跳跃 |
-| 游戏结束后：鼠标左键 / 空格 | 重新开始 |
+| 鼠标左键 / 空格 | 开始游戏 / 跳跃 / 重新开始 |
 
 ## 学到的概念
 
@@ -120,18 +124,27 @@ godot --path .  # 打开项目
 - **CanvasLayer**：独立 UI 层（不随世界变换）
 - **字符串格式化**：`"得分：%d" % score`（printf 风格）
 - **动态 UI 更新**：运行时改 Label.text
-- **Area2D 多用途**：同一节点同时用于碰撞 + 计分
+- **Area2D 多用途**：同一节点家族同时用于碰撞 + 计分
+
+### Step 5
+- **enum + match 状态机**：清晰的多状态切换（MENU/PLAYING/GAME_OVER）
+- **FileAccess + user://**：持久化数据到用户目录
+- **节点状态外部控制**：player.is_dead 由 main.gd 设置
+- **延迟 UI 显示**：用计时器变量控制时序（让死亡动画可见）
+- **多 UI 共存**：TitleLabel / ScoreLabel / HighScoreLabel / GameOverUI 各司其职
+- **方法暴露**：player.gd 暴露 jump() 供外部调用
 
 ## 下一步建议
 
-完成 Step 4 后，建议你做这几件事巩固理解：
+完成 Step 5 后，建议你做这几件事巩固理解：
 
-1. **改分数样式**：让 ScoreLabel 字号更大、加描边（用 LabelSettings）
-2. **加最高分**：用 `FileAccess` 把最高分存到 `user://highscore.txt`（Step 5 内容）
-3. **加通过音效**：在 _on_pipe_player_passed 里播放 sfx（用 AudioStreamPlayer）
-4. **观察信号顺序**：在 _on_pipe_player_hit 和 _on_pipe_player_passed 都加 print，看哪个先触发
-5. **测试计分**：连续穿过 5 个管道，验证分数正确累加
-6. **撞管时不加分**：故意撞管，验证 Game Over 后穿过事件不再加分
+1. **改死亡动画**：让玩家死亡时屏幕震动（用 Tween 改 Camera2D offset）而不是旋转
+2. **加音效**：跳跃 sfx、撞管 sfx、加分 sfx、背景音乐（用 AudioStreamPlayer）
+3. **像素美术**：用 Aseprite 画小鸟、管道、云朵替换 ColorRect
+4. **导出 .exe**：用 Export Templates 打包发给朋友玩（无需装 Godot）
+5. **加暂停**：按 P 键暂停游戏（用 `get_tree().paused = true` + process_mode）
+6. **加难度递增**：随分数提高 SCROLL_SPEED（动态难度）
+7. **观察高分存档**：运行游戏后到 `%APPDATA%/Godot/app_userdata/Flappy Clone/` 看 highscore.txt
 
 ---
 
@@ -140,3 +153,4 @@ godot --path .  # 打开项目
 - [Godot Step by Step 教程](https://docs.godotengine.org/en/4.7/getting_started/step_by_step/index.html)
 - [Godot 信号教程](https://docs.godotengine.org/en/4.7/getting_started/step_by_step/signals.html)
 - [Godot UI 教程](https://docs.godotengine.org/en/4.7/tutorials/ui/index.html)
+- [Godot 保存游戏](https://docs.godotengine.org/en/4.7/tutorials/io/saving_games.html)
