@@ -1,18 +1,17 @@
 # ============================================================
 # main.gd - 主场景脚本
-# Step 3：碰撞检测 + Game Over 状态机
+# Step 4：分数系统 + UI 层
 # ============================================================
 # 主场景 main.tscn 是游戏启动后加载的第一个场景。
 # 这个脚本挂在根节点 Main（Node2D）上，负责：
 #   Step 1：作为容器，引用 Player
 #   Step 2：定时生成管道
 #   Step 3：监听碰撞 + Game Over 状态机 + 简单重启
-#   Step 5：更完善的重启（菜单 + 动画 + 最高分 - 待实现）
+#   Step 4：分数管理 + ScoreLabel + Game Over 显示最终得分
 
 extends Node2D
 
 # === 资源预加载 ===
-# preload() 在编译期把场景文件加载进内存，返回 PackedScene 对象。
 const PIPE_SCENE: PackedScene = preload("res://scenes/pipe_pair.tscn")
 
 # === 生成参数 ===
@@ -30,40 +29,35 @@ const FLOOR_Y: float = 720.0
 # === 节点引用 ===
 @onready var player: CharacterBody2D = $Player
 @onready var game_over_ui: Label = $GameOverUI
+@onready var score_label: Label = $UILayer/ScoreLabel
 
 
-# === 状态机 ===
-# 简单的两态状态机：
-#   - _is_game_over = false：正常游戏（生成管道、玩家物理、滚动）
-#   - _is_game_over = true：Game Over（停止一切更新，等待玩家按重启键）
+# === 状态 ===
 var _spawn_timer: float = 0.0
 var _is_game_over: bool = false
+var _score: int = 0   # Step 4 新增：当前得分
 
 
 func _ready() -> void:
 	print("[Main] _ready - 游戏开始！")
 	print("[Main] 玩家初始位置：", player.position)
-	# GameOverUI 默认隐藏，撞管/撞地板后才显示
 	game_over_ui.visible = false
+	_update_score_label()  # 初始化分数显示为 "0"
 
 
 func _process(delta: float) -> void:
 	# === Game Over 状态：只处理重启输入 ===
 	if _is_game_over:
-		# 按跳跃键（鼠标左键 / 空格）重新开始
-		# reload_current_scene() 重新加载当前场景，所有状态自动重置
 		if Input.is_action_just_pressed("jump"):
 			get_tree().reload_current_scene()
-		return  # 不再执行下面的逻辑
+		return
 
 	# === 正常游戏状态 ===
-	# 1) 累加计时器 + 生成管道
 	_spawn_timer += delta
 	if _spawn_timer >= PIPE_SPAWN_INTERVAL:
 		_spawn_timer = 0.0
 		_spawn_pipe()
 
-	# 2) 检测地板碰撞（天花板由 player.gd clamp，不触发 Game Over）
 	if player.position.y > FLOOR_Y:
 		_trigger_game_over()
 
@@ -72,39 +66,53 @@ func _spawn_pipe() -> void:
 	var pipe: Node2D = PIPE_SCENE.instantiate()
 	pipe.position = Vector2(PIPE_SPAWN_X, randf_range(GAP_Y_MIN, GAP_Y_MAX))
 
-	# 连接管道的自定义信号 player_hit 到本脚本的 _on_pipe_player_hit。
-	# 这是 Godot 节点间解耦通信的标准方式：
-	#   - 管道不需要知道 main.gd 的存在，只负责发出信号
-	#   - main.gd 监听信号并做出响应（触发 Game Over）
+	# 连接管道的两个信号：
+	#   - player_hit：撞管 → Game Over（Step 3）
+	#   - player_passed：穿过缺口 → 加分（Step 4 新增）
 	pipe.player_hit.connect(_on_pipe_player_hit)
+	pipe.player_passed.connect(_on_pipe_player_passed)
 
 	add_child(pipe)
 
 
-# 玩家撞到管道时由 pipe_pair.gd 的 player_hit 信号触发
+# 玩家撞到管道（Step 3）
 func _on_pipe_player_hit() -> void:
 	_trigger_game_over()
 
 
-# 触发 Game Over 状态。
-# 用一个统一的入口函数，避免逻辑分散（撞管 / 撞地板 都走这里）。
+# 玩家穿过缺口（Step 4 新增）
+func _on_pipe_player_passed() -> void:
+	# Game Over 后不再加分（防止死后还计分）
+	if _is_game_over:
+		return
+	_score += 1
+	_update_score_label()
+	print("[Main] 得分：", _score)
+
+
+# 更新 ScoreLabel 显示
+func _update_score_label() -> void:
+	# str() 把 int 转成字符串（GDScript 不会自动转换类型）
+	score_label.text = str(_score)
+
+
+# 触发 Game Over 状态
 func _trigger_game_over() -> void:
-	# 防止重复触发（玩家可能同时撞管+撞地板）
 	if _is_game_over:
 		return
 	_is_game_over = true
 
-	print("[Main] Game Over!")
+	print("[Main] Game Over! 最终得分：", _score)
 
-	# 停止玩家物理（不再下落 / 跳跃）
-	# set_physics_process(false) 让 _physics_process 不再被调用
+	# 停止玩家物理
 	player.set_physics_process(false)
 
 	# 停止所有管道滚动
-	# get_nodes_in_group("pipes") 返回所有加入 "pipes" 组的节点
-	# set_process(false) 让 _process 不再被调用
 	for pipe in get_tree().get_nodes_in_group("pipes"):
 		pipe.set_process(false)
 
-	# 显示 Game Over UI
+	# 动态更新 GameOverUI 文本，显示最终得分
+	# %d 是 GDScript 的格式化占位符（类似 C 的 printf）
+	# \n 是换行符
+	game_over_ui.text = "Game Over!\n得分：%d\n按 空格 / 鼠标左键 重新开始" % _score
 	game_over_ui.visible = true

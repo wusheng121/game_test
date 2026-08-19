@@ -31,9 +31,15 @@
 - Game Over 状态机（停止生成 / 停止滚动 / 停止玩家物理）
 - Game Over UI + 按键重启（reload_current_scene）
 
+### Step 4 ✅ 已完成
+- PassDetector Area2D（位于缺口中央，检测玩家穿过）
+- 自定义信号 player_passed（与 player_hit 互斥）
+- 分数管理（_score 变量 + ScoreLabel 显示）
+- CanvasLayer 独立 UI 层（UILayer）
+- Game Over UI 动态显示最终得分（字符串格式化 %d）
+
 ### 后续 Step 路线图
 
-- [ ] Step 4：分数 + UI（学习 Label、CanvasLayer、信号通信）
 - [ ] Step 5：完善重新开始（菜单 + 动画 + 最高分记录）
 
 ## 项目结构
@@ -45,13 +51,13 @@ flappy-clone/
 ├── .gitignore
 ├── README.md
 ├── scenes/                # 场景文件（.tscn）
-│   ├── main.tscn          # 主场景（含 GameOverUI）
+│   ├── main.tscn          # 主场景（含 GameOverUI + UILayer/ScoreLabel）
 │   ├── player.tscn        # 玩家场景
-│   └── pipe_pair.tscn     # 管道对场景（Area2D + 碰撞）
+│   └── pipe_pair.tscn     # 管道对场景（Area2D + PassDetector）
 ├── scripts/               # GDScript 脚本（.gd）
-│   ├── main.gd            # 主场景脚本（生成 + Game Over 状态机）
-│   ├── player.gd          # 玩家脚本（重力 + 跳跃）
-│   └── pipe_pair.gd       # 管道对脚本（滚动 + 碰撞信号）
+│   ├── main.gd            # 主场景脚本（生成 + Game Over + 分数）
+│   ├── player.gd          # 玩家脚本（重力 + 跳跃 + 天花板 clamp）
+│   └── pipe_pair.gd       # 管道对脚本（滚动 + 碰撞 + 计分信号）
 └── assets/                # 美术/音效资源（暂空）
 ```
 
@@ -107,16 +113,25 @@ godot --path .  # 打开项目
 - **set_process(false) / set_physics_process(false)**：动态启停节点
 - **get_tree().reload_current_scene()**：场景重载
 - **Label 多行文本**：text 属性支持换行
+- **天花板 clamp**：position 边界限制（不死）
+
+### Step 4
+- **多信号设计**：player_hit + player_passed 互斥
+- **CanvasLayer**：独立 UI 层（不随世界变换）
+- **字符串格式化**：`"得分：%d" % score`（printf 风格）
+- **动态 UI 更新**：运行时改 Label.text
+- **Area2D 多用途**：同一节点同时用于碰撞 + 计分
 
 ## 下一步建议
 
-完成 Step 3 后，建议你做这几件事巩固理解：
+完成 Step 4 后，建议你做这几件事巩固理解：
 
-1. **改 Game Over 文案**：在 `main.tscn` 的 GameOverUI 节点改 text 属性
-2. **加分数提示**：在玩家通过管道时加分（为 Step 4 做准备）
-3. **改碰撞响应**：撞管后让小鸟旋转下坠（在 player.gd 加 rotation 动画）
-4. **观察信号**：在 `_on_pipe_body_entered` 加 print，观察信号触发时机
-5. **测试边界**：故意撞天花板 / 撞地板 / 撞管道，验证 Game Over 触发
+1. **改分数样式**：让 ScoreLabel 字号更大、加描边（用 LabelSettings）
+2. **加最高分**：用 `FileAccess` 把最高分存到 `user://highscore.txt`（Step 5 内容）
+3. **加通过音效**：在 _on_pipe_player_passed 里播放 sfx（用 AudioStreamPlayer）
+4. **观察信号顺序**：在 _on_pipe_player_hit 和 _on_pipe_player_passed 都加 print，看哪个先触发
+5. **测试计分**：连续穿过 5 个管道，验证分数正确累加
+6. **撞管时不加分**：故意撞管，验证 Game Over 后穿过事件不再加分
 
 ---
 
@@ -124,3 +139,4 @@ godot --path .  # 打开项目
 - [Godot 官方文档](https://docs.godotengine.org/en/4.7/)
 - [Godot Step by Step 教程](https://docs.godotengine.org/en/4.7/getting_started/step_by_step/index.html)
 - [Godot 信号教程](https://docs.godotengine.org/en/4.7/getting_started/step_by_step/signals.html)
+- [Godot UI 教程](https://docs.godotengine.org/en/4.7/tutorials/ui/index.html)
