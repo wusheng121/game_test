@@ -21,10 +21,10 @@ const PIPE_SPAWN_X: float = 1280.0 + 100.0
 const GAP_Y_MIN: float = 200.0
 const GAP_Y_MAX: float = 520.0
 
-# === 边界（地板/天花板碰撞）===
-# 屏幕高 720。玩家中心 y 超过 FLOOR_Y = 撞地板；小于 CEILING_Y = 撞天花板。
+# === 边界（地板碰撞）===
+# 屏幕高 720。玩家中心 y 超过 FLOOR_Y = 撞地板 → Game Over。
+# 注意：天花板由 player.gd 内部 clamp 位置，不算死亡（玩家撞顶不死）。
 const FLOOR_Y: float = 720.0
-const CEILING_Y: float = 0.0
 
 
 # === 节点引用 ===
@@ -63,8 +63,8 @@ func _process(delta: float) -> void:
 		_spawn_timer = 0.0
 		_spawn_pipe()
 
-	# 2) 检测地板/天花板碰撞
-	if player.position.y > FLOOR_Y or player.position.y < CEILING_Y:
+	# 2) 检测地板碰撞（天花板由 player.gd clamp，不触发 Game Over）
+	if player.position.y > FLOOR_Y:
 		_trigger_game_over()
 
 

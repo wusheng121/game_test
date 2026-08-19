@@ -26,7 +26,8 @@
 ### Step 3 ✅ 已完成
 - 管道改为 Area2D（带 CollisionShape2D）
 - 玩家撞管检测（body_entered 信号）
-- 撞地板/天花板检测
+- 撞地板检测（Game Over）
+- 天花板边界 clamp（不死，仅挡住玩家）
 - Game Over 状态机（停止生成 / 停止滚动 / 停止玩家物理）
 - Game Over UI + 按键重启（reload_current_scene）
 

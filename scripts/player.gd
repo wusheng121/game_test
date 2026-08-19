@@ -26,6 +26,10 @@ const GRAVITY: float = 1200.0
 # 数值越大跳得越猛。
 const JUMP_VELOCITY: float = -450.0
 
+# 天花板 Y 坐标（屏幕顶部）。玩家中心 y 不会低于此值。
+# 注意：这里只 clamp 位置，不触发 Game Over（与地板不同，撞天花板不死）。
+const CEILING_Y: float = 0.0
+
 
 # _physics_process 是 Godot 的"物理帧"回调。
 # 与 _process（每渲染帧调用）不同，_physics_process 在固定时间步长上调用
@@ -57,3 +61,12 @@ func _physics_process(delta: float) -> void:
 	#      c) 自动用 delta 做帧率无关处理
 	#    它内部读取 velocity 属性，所以前面修改 velocity 就够了。
 	move_and_slide()
+
+	# 4) 天花板边界（clamp，不死亡）
+	#    玩家上跳过高时，position.y 可能小于 0（飞出屏幕顶部）。
+	#    这里把位置硬性拉回 0，并把向上的速度清零，防止"卡在天花板抖动"。
+	#    与地板不同：撞天花板只挡住，不算 Game Over。
+	if position.y < CEILING_Y:
+		position.y = CEILING_Y
+		if velocity.y < 0:
+			velocity.y = 0
