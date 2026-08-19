@@ -14,12 +14,17 @@
 ### Step 1 ✅ 已完成
 - 项目骨架搭建
 - Player 场景（CharacterBody2D + Polygon2D 黄方块）
-- 重力 + 跳跃（空格 / 上箭头）
+- 重力 + 跳跃（鼠标左键 / 空格）
 - 主场景背景 + 提示文字
+- 自定义输入动作 `jump`（Input Map 配置）
+
+### Step 2 ✅ 已完成
+- PipePair 场景（上管道 + 下管道 + 缺口）
+- 管道循环滚动 + 出屏销毁（queue_free）
+- 主场景定时生成管道 + 随机缺口位置
 
 ### 后续 Step 路线图
 
-- [ ] Step 2：管道滚动 + 循环生成（学习 Timer、Area2D、节点复制）
 - [ ] Step 3：碰撞检测 + Game Over 状态（学习信号 body_entered、状态机）
 - [ ] Step 4：分数 + UI（学习 Label、CanvasLayer、信号通信）
 - [ ] Step 5：重新开始（学习 reload_current_scene）
@@ -28,16 +33,18 @@
 
 ```
 flappy-clone/
-├── project.godot          # Godot 项目配置
+├── project.godot          # Godot 项目配置（含 jump 输入动作）
 ├── icon.svg               # 项目图标
 ├── .gitignore
 ├── README.md
 ├── scenes/                # 场景文件（.tscn）
 │   ├── main.tscn          # 主场景（游戏入口）
-│   └── player.tscn        # 玩家场景
+│   ├── player.tscn        # 玩家场景
+│   └── pipe_pair.tscn     # 管道对场景（上+下）
 ├── scripts/               # GDScript 脚本（.gd）
-│   ├── main.gd            # 主场景脚本
-│   └── player.gd          # 玩家脚本（重力 + 跳跃）
+│   ├── main.gd            # 主场景脚本（管道生成）
+│   ├── player.gd          # 玩家脚本（重力 + 跳跃）
+│   └── pipe_pair.gd       # 管道对脚本（滚动 + 销毁）
 └── assets/                # 美术/音效资源（暂空）
 ```
 
@@ -60,10 +67,11 @@ godot --path .  # 打开项目
 
 | 按键 | 动作 |
 |------|------|
-| 空格 / 上箭头 / 回车 | 跳跃 |
+| 鼠标左键 / 空格 | 跳跃 |
 
 ## 学到的概念
 
+### Step 1
 - **Node（节点）**：Godot 的基本构成单元
 - **Scene（场景）**：节点的组合，可被实例化
 - **CharacterBody2D**：可控物理角色节点
@@ -72,15 +80,24 @@ godot --path .  # 打开项目
 - **_physics_process(delta)**：物理帧回调
 - **Polygon2D**：用顶点数组画多边形
 - **@onready + $NodeName**：节点引用
+- **Input Map**：自定义输入动作 + 多按键绑定
+
+### Step 2
+- **PackedScene + preload() + instantiate()**：场景实例化范式
+- **add_child()**：动态添加节点到场景树
+- **_process(delta)**：渲染帧回调（适合非物理逻辑）
+- **queue_free()**：安全销毁节点
+- **randf_range()**：随机数生成
+- **自定义计时器模式**：用累加变量做计时（也可用 Timer 节点）
 
 ## 下一步建议
 
-完成 Step 1 后，建议你做这几件事，巩固理解：
+完成 Step 2 后，建议你做这几件事巩固理解：
 
-1. **改参数试试**：在 `player.gd` 里把 `GRAVITY` 改成 `800`、`JUMP_VELOCITY` 改成 `-380`，感受不同手感
-2. **加旋转**：让小鸟跳跃时抬头、下落时低头（用 `rotation` 属性 + `lerp_angle`）
-3. **改成 @export**：把 const 改成 `@export var`，在 Inspector 面板调参
-4. **看日志**：运行后观察 Output 面板里的 `[Main] _ready` 输出
+1. **改速度试试**：在 `pipe_pair.gd` 里把 `SCROLL_SPEED` 从 `-200` 改成 `-400`，感受难度差异
+2. **改缺口范围**：在 `main.gd` 调整 `GAP_Y_MIN` / `GAP_Y_MAX`
+3. **改生成间隔**：把 `PIPE_SPAWN_INTERVAL` 从 `2.0` 改成 `1.5` 或 `3.0`
+4. **观察管道**：运行游戏，留意管道从右往左滚动、出屏后消失（无内存泄漏）
 
 ---
 

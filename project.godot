@@ -1,14 +1,10 @@
-; ============================================================
-; Flappy Clone - Godot 项目配置
-; ============================================================
-; 这个文件是 Godot 项目的入口配置，记录了：
-;   - 项目名称、描述、主场景
-;   - 渲染器与窗口设置
-;   - 自定义输入动作（这里先用默认 ui_accept）
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
 ;
-; 你不需要手动编辑此文件，Godot 编辑器中的
-;   Project → Project Settings 菜单会自动管理它。
-; 但了解其结构对排查问题很有帮助。
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -22,25 +18,20 @@ config/icon="res://icon.svg"
 
 [display]
 
-; 窗口与拉伸设置
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 
 [input]
 
-; 输入动作配置。
-; 这里我们暂时复用 Godot 内置的 ui_accept（默认绑定空格/回车/手柄A）作为跳跃。
-; 后续如果你想自定义专门的 "jump" 动作，可以在
-;   Project → Project Settings → Input Map 里添加，
-; 然后在 player.gd 里把 ui_accept 换成 jump。
+jump={
+"deadzone": 0.2,
+"events": [Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"button_mask":0,"position":Vector2(0, 0),"global_position":Vector2(0, 0),"factor":1.0,"button_index":1,"canceled":false,"pressed":false,"double_click":false,"script":null),
+Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":32,"key_label":0,"unicode":32,"echo":false,"script":null)
+]
+}
 
 [rendering]
 
-; 使用 GL Compatibility 渲染器（基于 OpenGL），
-; 兼容几乎所有显卡，适合 2D 学习项目。
-; 如果你有独立显卡且想用更好的渲染器，
-; 可以改为 "forward_plus"（需 Vulkan 支持）。
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"

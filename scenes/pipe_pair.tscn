@@ -1,0 +1,33 @@
+; ============================================================
+; pipe_pair.tscn - 管道对场景
+; ============================================================
+; 结构：
+;   PipePair (Node2D, 挂 pipe_pair.gd)
+;   ├── TopPipe (Polygon2D, 上管道，绿色 80x720)
+;   └── BottomPipe (Polygon2D, 下管道，绿色 80x720)
+;
+; 缺口设计（PipePair 本地坐标）：
+;   - 缺口高度：160 像素（玩家可通过）
+;   - 缺口中心：本地 (0, 0)，即 PipePair.position 处
+;   - TopPipe 中心 y = -440（= -360 - 80：管道半高 + 缺口半高）
+;   - BottomPipe 中心 y = +440
+;   - 玩家可在 [PipePair.y - 80, PipePair.y + 80] 范围通过
+;
+; 生成时由 main.gd 控制 PipePair.position.y 来随机缺口高度。
+
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/pipe_pair.gd" id="1_pipe_pair_script"]
+
+[node name="PipePair" type="Node2D"]
+script = ExtResource("1_pipe_pair_script")
+
+[node name="TopPipe" type="Polygon2D" parent="."]
+position = Vector2(0, -440)
+polygon = PackedVector2Array(-40, -360, 40, -360, 40, 360, -40, 360)
+color = Color(0.2, 0.7, 0.2, 1)
+
+[node name="BottomPipe" type="Polygon2D" parent="."]
+position = Vector2(0, 440)
+polygon = PackedVector2Array(-40, -360, 40, -360, 40, 360, -40, 360)
+color = Color(0.2, 0.7, 0.2, 1)

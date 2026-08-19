@@ -43,10 +43,10 @@ func _physics_process(delta: float) -> void:
 	#    "玩家在本帧按下了该动作对应的键"，只在按下的那一帧触发，
 	#    长按不会重复触发。
 	#
-	#    ui_accept 是 Godot 默认内置的输入动作，
-	#    已绑定 空格 / 回车 / 手柄 A 键。
-	#    你也可以在 Project Settings → Input Map 中自定义 jump 动作。
-	if Input.is_action_just_pressed("ui_accept"):
+	#    jump 是我们在 Project Settings → Input Map 自定义的输入动作，
+	#    已绑定 鼠标左键 + 空格。
+	#    想改键位？直接在 Input Map 里增删事件，无需改代码。
+	if Input.is_action_just_pressed("jump"):
 		# 直接覆盖 Y 速度，制造"瞬间上跳"效果
 		velocity.y = JUMP_VELOCITY
 
