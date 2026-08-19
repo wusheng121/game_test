@@ -1,78 +1,110 @@
 # ============================================================
 # main.gd - 主场景脚本
-# Step 2：管道循环生成
+# Step 3：碰撞检测 + Game Over 状态机
 # ============================================================
 # 主场景 main.tscn 是游戏启动后加载的第一个场景。
 # 这个脚本挂在根节点 Main（Node2D）上，负责：
 #   Step 1：作为容器，引用 Player
-#   Step 2：定时生成管道（每 2 秒一个，缺口位置随机）
-#   Step 3：监听碰撞 → 切换到 Game Over 状态（待实现）
-#   Step 5：重新开始（待实现）
+#   Step 2：定时生成管道
+#   Step 3：监听碰撞 + Game Over 状态机 + 简单重启
+#   Step 5：更完善的重启（菜单 + 动画 + 最高分 - 待实现）
 
 extends Node2D
 
 # === 资源预加载 ===
 # preload() 在编译期把场景文件加载进内存，返回 PackedScene 对象。
-# 比运行时 load() 快很多，适合这种"会反复实例化"的资源。
-# 注意路径必须以 res:// 开头（res:// 是项目根目录）。
 const PIPE_SCENE: PackedScene = preload("res://scenes/pipe_pair.tscn")
 
 # === 生成参数 ===
-# 两次管道生成之间的间隔（秒）。值越小越难。
 const PIPE_SPAWN_INTERVAL: float = 2.0
-
-# 管道生成的 X 坐标（屏幕右边界 1280 + 100 缓冲）。
-# 这样管道出现时还在屏幕外，玩家不会看到"突然冒出来"。
 const PIPE_SPAWN_X: float = 1280.0 + 100.0
-
-# 缺口中心的 Y 坐标范围（屏幕高 720）。
-# 限制在 [200, 520] 让缺口不会贴顶或贴底。
 const GAP_Y_MIN: float = 200.0
 const GAP_Y_MAX: float = 520.0
 
+# === 边界（地板/天花板碰撞）===
+# 屏幕高 720。玩家中心 y 超过 FLOOR_Y = 撞地板；小于 CEILING_Y = 撞天花板。
+const FLOOR_Y: float = 720.0
+const CEILING_Y: float = 0.0
+
 
 # === 节点引用 ===
-# @onready 表示"节点进入场景树后立即赋值"。
-# $Player 是 get_node("Player") 的简写，等同于场景树中名为 Player 的子节点。
-# 类型标注 : CharacterBody2D 让编辑器自动补全更智能。
 @onready var player: CharacterBody2D = $Player
+@onready var game_over_ui: Label = $GameOverUI
 
 
-# === 内部状态 ===
-# 自定义计时器：每帧累加 delta，达到 PIPE_SPAWN_INTERVAL 时生成管道并归零。
-# 也可以用 Godot 内置的 Timer 节点，但手写更便于理解原理。
+# === 状态机 ===
+# 简单的两态状态机：
+#   - _is_game_over = false：正常游戏（生成管道、玩家物理、滚动）
+#   - _is_game_over = true：Game Over（停止一切更新，等待玩家按重启键）
 var _spawn_timer: float = 0.0
+var _is_game_over: bool = false
 
 
 func _ready() -> void:
-	# _ready 在节点进入场景树时调用一次（场景启动时）。
-	# 这里打印日志，验证脚本正确加载。
-	# 在 Godot 编辑器里运行游戏后，看底部的 Output 面板能看到这些日志。
 	print("[Main] _ready - 游戏开始！")
 	print("[Main] 玩家初始位置：", player.position)
+	# GameOverUI 默认隐藏，撞管/撞地板后才显示
+	game_over_ui.visible = false
 
 
 func _process(delta: float) -> void:
-	# 累加计时器
-	_spawn_timer += delta
+	# === Game Over 状态：只处理重启输入 ===
+	if _is_game_over:
+		# 按跳跃键（鼠标左键 / 空格）重新开始
+		# reload_current_scene() 重新加载当前场景，所有状态自动重置
+		if Input.is_action_just_pressed("jump"):
+			get_tree().reload_current_scene()
+		return  # 不再执行下面的逻辑
 
-	# 达到生成间隔 → 生成管道 + 归零
+	# === 正常游戏状态 ===
+	# 1) 累加计时器 + 生成管道
+	_spawn_timer += delta
 	if _spawn_timer >= PIPE_SPAWN_INTERVAL:
 		_spawn_timer = 0.0
 		_spawn_pipe()
 
+	# 2) 检测地板/天花板碰撞
+	if player.position.y > FLOOR_Y or player.position.y < CEILING_Y:
+		_trigger_game_over()
 
-# 生成一个管道对，放在屏幕右侧，缺口 Y 随机
-# 函数名前缀 _ 表示"私有方法"（GDScript 惯例，不强制）
+
 func _spawn_pipe() -> void:
-	# instantiate() 创建 PackedScene 的一个新实例（Node 对象）
-	# 此时实例还没加入场景树，不会被渲染或处理
 	var pipe: Node2D = PIPE_SCENE.instantiate()
-
-	# 设置位置：X 在屏幕右侧外，Y 在合理范围内随机
-	# randf_range(min, max) 返回 [min, max] 之间的随机 float
 	pipe.position = Vector2(PIPE_SPAWN_X, randf_range(GAP_Y_MIN, GAP_Y_MAX))
 
-	# add_child() 把节点挂到当前节点下，加入场景树
-	# 节点一旦加入场景树，其 _ready/_process 等回调就会被触发
+	# 连接管道的自定义信号 player_hit 到本脚本的 _on_pipe_player_hit。
+	# 这是 Godot 节点间解耦通信的标准方式：
+	#   - 管道不需要知道 main.gd 的存在，只负责发出信号
+	#   - main.gd 监听信号并做出响应（触发 Game Over）
+	pipe.player_hit.connect(_on_pipe_player_hit)
+
 	add_child(pipe)
+
+
+# 玩家撞到管道时由 pipe_pair.gd 的 player_hit 信号触发
+func _on_pipe_player_hit() -> void:
+	_trigger_game_over()
+
+
+# 触发 Game Over 状态。
+# 用一个统一的入口函数，避免逻辑分散（撞管 / 撞地板 都走这里）。
+func _trigger_game_over() -> void:
+	# 防止重复触发（玩家可能同时撞管+撞地板）
+	if _is_game_over:
+		return
+	_is_game_over = true
+
+	print("[Main] Game Over!")
+
+	# 停止玩家物理（不再下落 / 跳跃）
+	# set_physics_process(false) 让 _physics_process 不再被调用
+	player.set_physics_process(false)
+
+	# 停止所有管道滚动
+	# get_nodes_in_group("pipes") 返回所有加入 "pipes" 组的节点
+	# set_process(false) 让 _process 不再被调用
+	for pipe in get_tree().get_nodes_in_group("pipes"):
+		pipe.set_process(false)
+
+	# 显示 Game Over UI
+	game_over_ui.visible = true

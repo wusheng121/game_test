@@ -23,11 +23,17 @@
 - 管道循环滚动 + 出屏销毁（queue_free）
 - 主场景定时生成管道 + 随机缺口位置
 
+### Step 3 ✅ 已完成
+- 管道改为 Area2D（带 CollisionShape2D）
+- 玩家撞管检测（body_entered 信号）
+- 撞地板/天花板检测
+- Game Over 状态机（停止生成 / 停止滚动 / 停止玩家物理）
+- Game Over UI + 按键重启（reload_current_scene）
+
 ### 后续 Step 路线图
 
-- [ ] Step 3：碰撞检测 + Game Over 状态（学习信号 body_entered、状态机）
 - [ ] Step 4：分数 + UI（学习 Label、CanvasLayer、信号通信）
-- [ ] Step 5：重新开始（学习 reload_current_scene）
+- [ ] Step 5：完善重新开始（菜单 + 动画 + 最高分记录）
 
 ## 项目结构
 
@@ -38,13 +44,13 @@ flappy-clone/
 ├── .gitignore
 ├── README.md
 ├── scenes/                # 场景文件（.tscn）
-│   ├── main.tscn          # 主场景（游戏入口）
+│   ├── main.tscn          # 主场景（含 GameOverUI）
 │   ├── player.tscn        # 玩家场景
-│   └── pipe_pair.tscn     # 管道对场景（上+下）
+│   └── pipe_pair.tscn     # 管道对场景（Area2D + 碰撞）
 ├── scripts/               # GDScript 脚本（.gd）
-│   ├── main.gd            # 主场景脚本（管道生成）
+│   ├── main.gd            # 主场景脚本（生成 + Game Over 状态机）
 │   ├── player.gd          # 玩家脚本（重力 + 跳跃）
-│   └── pipe_pair.gd       # 管道对脚本（滚动 + 销毁）
+│   └── pipe_pair.gd       # 管道对脚本（滚动 + 碰撞信号）
 └── assets/                # 美术/音效资源（暂空）
 ```
 
@@ -68,6 +74,7 @@ godot --path .  # 打开项目
 | 按键 | 动作 |
 |------|------|
 | 鼠标左键 / 空格 | 跳跃 |
+| 游戏结束后：鼠标左键 / 空格 | 重新开始 |
 
 ## 学到的概念
 
@@ -88,19 +95,31 @@ godot --path .  # 打开项目
 - **_process(delta)**：渲染帧回调（适合非物理逻辑）
 - **queue_free()**：安全销毁节点
 - **randf_range()**：随机数生成
-- **自定义计时器模式**：用累加变量做计时（也可用 Timer 节点）
+- **自定义计时器模式**：用累加变量做计时
+
+### Step 3
+- **Area2D + CollisionShape2D**：触发区域 + 碰撞形状
+- **body_entered 信号**：PhysicsBody2D 进入区域时触发
+- **signal + emit() + connect()**：自定义信号通信
+- **节点组（Group）**：跨节点查找机制
+- **状态机模式**：用 _is_game_over 标志切换行为
+- **set_process(false) / set_physics_process(false)**：动态启停节点
+- **get_tree().reload_current_scene()**：场景重载
+- **Label 多行文本**：text 属性支持换行
 
 ## 下一步建议
 
-完成 Step 2 后，建议你做这几件事巩固理解：
+完成 Step 3 后，建议你做这几件事巩固理解：
 
-1. **改速度试试**：在 `pipe_pair.gd` 里把 `SCROLL_SPEED` 从 `-200` 改成 `-400`，感受难度差异
-2. **改缺口范围**：在 `main.gd` 调整 `GAP_Y_MIN` / `GAP_Y_MAX`
-3. **改生成间隔**：把 `PIPE_SPAWN_INTERVAL` 从 `2.0` 改成 `1.5` 或 `3.0`
-4. **观察管道**：运行游戏，留意管道从右往左滚动、出屏后消失（无内存泄漏）
+1. **改 Game Over 文案**：在 `main.tscn` 的 GameOverUI 节点改 text 属性
+2. **加分数提示**：在玩家通过管道时加分（为 Step 4 做准备）
+3. **改碰撞响应**：撞管后让小鸟旋转下坠（在 player.gd 加 rotation 动画）
+4. **观察信号**：在 `_on_pipe_body_entered` 加 print，观察信号触发时机
+5. **测试边界**：故意撞天花板 / 撞地板 / 撞管道，验证 Game Over 触发
 
 ---
 
 学习来源：
 - [Godot 官方文档](https://docs.godotengine.org/en/4.7/)
 - [Godot Step by Step 教程](https://docs.godotengine.org/en/4.7/getting_started/step_by_step/index.html)
+- [Godot 信号教程](https://docs.godotengine.org/en/4.7/getting_started/step_by_step/signals.html)

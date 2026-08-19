@@ -3,31 +3,50 @@
 ; ============================================================
 ; 结构：
 ;   PipePair (Node2D, 挂 pipe_pair.gd)
-;   ├── TopPipe (Polygon2D, 上管道，绿色 80x720)
-;   └── BottomPipe (Polygon2D, 下管道，绿色 80x720)
+;   ├── TopPipe (Area2D, 碰撞检测) position=(0,-440)
+;   │   ├── Sprite (Polygon2D, 80x720 绿色)
+;   │   └── CollisionShape2D (RectangleShape2D 80x720)
+;   └── BottomPipe (Area2D, 碰撞检测) position=(0,+440)
+;       ├── Sprite (Polygon2D, 80x720 绿色)
+;       └── CollisionShape2D (RectangleShape2D 80x720)
+;
+; Step 3 改动：把 Polygon2D 改为 Area2D + 子节点
+;   - Area2D 是"触发区域"，可以检测 PhysicsBody2D（玩家）进入
+;   - Polygon2D 保留作为视觉
+;   - CollisionShape2D 定义碰撞形状
 ;
 ; 缺口设计（PipePair 本地坐标）：
-;   - 缺口高度：160 像素（玩家可通过）
+;   - 缺口高度：160 像素
 ;   - 缺口中心：本地 (0, 0)，即 PipePair.position 处
-;   - TopPipe 中心 y = -440（= -360 - 80：管道半高 + 缺口半高）
+;   - TopPipe 中心 y = -440 = -360（管道半高） - 80（缺口半高）
 ;   - BottomPipe 中心 y = +440
-;   - 玩家可在 [PipePair.y - 80, PipePair.y + 80] 范围通过
-;
-; 生成时由 main.gd 控制 PipePair.position.y 来随机缺口高度。
 
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/pipe_pair.gd" id="1_pipe_pair_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pipe"]
+size = Vector2(80, 720)
 
 [node name="PipePair" type="Node2D"]
 script = ExtResource("1_pipe_pair_script")
 
-[node name="TopPipe" type="Polygon2D" parent="."]
+[node name="TopPipe" type="Area2D" parent="."]
 position = Vector2(0, -440)
+
+[node name="Sprite" type="Polygon2D" parent="TopPipe"]
 polygon = PackedVector2Array(-40, -360, 40, -360, 40, 360, -40, 360)
 color = Color(0.2, 0.7, 0.2, 1)
 
-[node name="BottomPipe" type="Polygon2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TopPipe"]
+shape = SubResource("RectangleShape2D_pipe")
+
+[node name="BottomPipe" type="Area2D" parent="."]
 position = Vector2(0, 440)
+
+[node name="Sprite" type="Polygon2D" parent="BottomPipe"]
 polygon = PackedVector2Array(-40, -360, 40, -360, 40, 360, -40, 360)
 color = Color(0.2, 0.7, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BottomPipe"]
+shape = SubResource("RectangleShape2D_pipe")

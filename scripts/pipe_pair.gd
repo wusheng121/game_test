@@ -1,40 +1,58 @@
 # ============================================================
 # pipe_pair.gd - 管道对脚本
-# Step 2：滚动 + 出屏销毁
+# Step 3：滚动 + 出屏销毁 + 碰撞检测
 # ============================================================
 # 挂在 PipePair 场景的根节点（Node2D）上。
-# Step 2 只负责：
-#   1) 每帧把自己向左移动
-#   2) 出屏后调用 queue_free() 自我销毁
-# Step 3 才会加碰撞检测（用 Area2D + body_entered 信号）
+# Step 2：滚动 + 销毁
+# Step 3 新增：
+#   - 子节点 TopPipe/BottomPipe 改为 Area2D（带 CollisionShape2D）
+#   - 玩家撞入管道时，Area2D.body_entered 信号触发
+#   - 本脚本把信号转发为自定义信号 player_hit
+#   - main.gd 监听 player_hit 来触发 Game Over
 
 extends Node2D
 
+# === 自定义信号 ===
+# 玩家撞到管道时发出，由 main.gd 监听。
+# signal 关键字定义的信号，可被外部用 .connect() 连接。
+signal player_hit
+
 # === 滚动参数 ===
 # 滚动速度（像素/秒）。负值表示向左移动。
-# 想让游戏更难？把数值改成更负的（如 -400），管道飞得更快。
 const SCROLL_SPEED: float = -200.0
 
-# 销毁阈值：当 PipePair 的 X 坐标小于这个值时，
-# 说明已经完全离开屏幕左侧，可以销毁回收内存。
-# -100 给个缓冲，避免视觉上"突然消失"。
+# 销毁阈值：PipePair 的 X 坐标小于此值时，已离开屏幕左侧，可销毁。
 const DESPAWN_X: float = -100.0
 
 
-# _process 是 Godot 的"渲染帧"回调，每渲染帧调用一次。
-# 为什么用 _process 而不是 _physics_process？
-#   - 管道滚动是纯视觉移动，不涉及物理碰撞响应
-#   - 用 _process 让移动更顺滑（不受固定物理帧率 60Hz 限制）
-#   - 但要用 delta 累加，否则不同帧率速度不一致
+func _ready() -> void:
+	# 把本管道加入 "pipes" 组，方便 main.gd 一键停止所有管道滚动。
+	# 组（Group）是 Godot 跨节点查找的轻量机制，比层层 get_parent() 灵活。
+	add_to_group("pipes")
+
+	# 连接子节点 Area2D 的 body_entered 信号到本地处理函数。
+	# $TopPipe 是 get_node("TopPipe") 的简写。
+	# .body_entered 是 Area2D 的内置信号（PhysicsBody2D 进入区域时发出）。
+	# .connect(目标函数) 把信号连到本脚本的 _on_pipe_body_entered。
+	$TopPipe.body_entered.connect(_on_pipe_body_entered)
+	$BottomPipe.body_entered.connect(_on_pipe_body_entered)
+
+
 func _process(delta: float) -> void:
-	# 1) 向左移动
-	#    position 是 Node2D 内置 Vector2 属性
+	# 向左滚动
 	position.x += SCROLL_SPEED * delta
 
-	# 2) 出屏检测 + 销毁
-	#    queue_free() 是 Godot 的"安全销毁"：
-	#      - 不会立即销毁，而是排队到帧末统一处理
-	#      - 避免在迭代过程中销毁节点导致崩溃
-	#    这是 Godot 处理"动态生成/销毁"的标准做法
+	# 出屏销毁
 	if position.x < DESPAWN_X:
 		queue_free()
+
+
+# Area2D.body_entered 信号的回调函数。
+# 信号会自动传入参数 body（进入区域的 PhysicsBody2D，在我们的场景里就是玩家）。
+func _on_pipe_body_entered(body: Node2D) -> void:
+	# 用名字判断是不是玩家（简单粗暴，但够用）。
+	# 更正规的做法：把玩家加入 "player" 组，用 body.is_in_group("player") 判断。
+	if body.name == "Player":
+		# 发出自定义信号 player_hit，让 main.gd 处理 Game Over。
+		# emit() 是 Godot 4 触发信号的方法（Godot 3 用 emit_signal("name")）。
+		player_hit.emit()

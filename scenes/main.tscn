@@ -23,3 +23,15 @@ theme_override_font_sizes/font_size = 32
 text = "鼠标左键 / 空格 = 跳跃"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="GameOverUI" type="Label" parent="."]
+visible = false
+offset_left = 240.0
+offset_top = 280.0
+offset_right = 1040.0
+offset_bottom = 440.0
+theme_override_font_sizes/font_size = 40
+text = "Game Over!
+按 空格 / 鼠标左键 重新开始"
+horizontal_alignment = 1
+vertical_alignment = 1
